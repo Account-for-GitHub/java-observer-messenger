@@ -1,7 +1,10 @@
 package messenger.app.informer;
 
 import messenger.app.devices.Observer;
-import messenger.app.repository.MessageRepository;
+import messenger.app.repository.RepositoryWrapper;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,25 +13,29 @@ import java.util.ArrayList;
 
 @RestController
 public class InformerController implements ISubject {
-    private final MessageRepository repository;
+    private final RepositoryWrapper repositoryWrapper;
     ArrayList<Observer> observers = new ArrayList<>();
     private String message = "";
 
-    public InformerController(MessageRepository repository) {
-        this.repository = repository;
+    public InformerController(RepositoryWrapper repositoryWrapper) {
+        this.repositoryWrapper = repositoryWrapper;
     }
 
     @PostMapping("/")
-    String receiveMessageToSend(@RequestBody Message entity) {
+    ResponseEntity<String> receiveMessageToSend(@RequestBody Message entity) {
         message = entity.getMessage();
         try {
             informObservers();
         } catch (Exception e) {
-            return "Failure!";
+            return new ResponseEntity<>("Failure!", HttpStatus.EXPECTATION_FAILED);
         }
-        //TODO save to db
-        repository.save(entity);
-        return "Success!";
+        repositoryWrapper.save(entity);
+        return new ResponseEntity<>("Success!", HttpStatus.OK);
+    }
+
+    @GetMapping("/show-all-messages")
+    Iterable<Message> showAll() {
+        return repositoryWrapper.findAll();
     }
 
     @Override
